@@ -462,7 +462,7 @@ function getSolutionFromLocalStorage(jsonObject, url) {
     // No need to parse, since jsonObject is already an object
 
     // Extract the language
-    const language = extractLanguage(jsonObject);
+    let language = extractLanguage(jsonObject);
 
     // Extract the problem ID
     const problemId = extractProblemId(url);
@@ -706,12 +706,14 @@ function addChatbox() {
                             : "No hints available.";
 
                         console.log("problem deatils :",problemDetails);
+                        let language = extractLanguage(problemDetails);
+                        console.log(language);
 
                     
-                        let abc = window.generatePrompt(problemDetails, hintsText, editorialText, userMessage, userSolution);
+                        let abc = window.generatePrompt(problemDetails, hintsText, editorialText, userMessage, userSolution,language);
                         console.log(abc)
                         async function merge(abc, globalChatHistoryContent) {
-                            const mergedText = `${globalChatHistoryContent}\n\n${abc}`; // Use backticks for string interpolation
+                            const mergedText = `${abc}\n\n${globalChatHistoryContent}`; // Use backticks for string interpolation
                             return mergedText; // Return the combined text
                         }
                         
