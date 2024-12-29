@@ -546,16 +546,28 @@ function addChatbox() {
                     align-items: center;
                 ">
                     <span style="font-weight: 600; font-size: 16px;">Coding Assistant</span>
-                    <button id="close-chatbox" style="
-                        background: none;
-                        border: none;
-                        color: #333;
-                        cursor: pointer;
-                        font-size: 18px;
-                        padding: 5px;
-                        opacity: 0.8;
-                        transition: opacity 0.2s;
-                    ">×</button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="delete-chat" style="
+                            background: none;
+                            border: none;
+                            color: #ff4d4f;
+                            cursor: pointer;
+                            font-size: 16px;
+                            padding: 5px;
+                            opacity: 0.8;
+                            transition: opacity 0.2s;
+                        ">🗑️</button>
+                        <button id="close-chatbox" style="
+                            background: none;
+                            border: none;
+                            color: #333;
+                            cursor: pointer;
+                            font-size: 18px;
+                            padding: 5px;
+                            opacity: 0.8;
+                            transition: opacity 0.2s;
+                        ">×</button>
+                    </div>
                 </div>
                 <div id="chat-content" style="
                     height:  508px;
@@ -594,38 +606,37 @@ function addChatbox() {
                     ">Send</button>
                 </div>
             </div>
-        `
+        `;
            
-        ;
         document.body.insertAdjacentHTML("beforeend", chatboxHTML);
 
-               // Initialize theme observer
-               const modeObserver = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === "attributes") {
-                        const switchButton = mutation.target;
-                        const isDarkMode = switchButton.getAttribute("aria-checked") === "true";
-                        applyTheme(isDarkMode);
-                    }
-                });
-            });
-    
-            function observeModeSwitch() {
-                const modeSwitch = document.querySelector(".ant-switch[role='switch']");
-                if (modeSwitch) {
-                    modeObserver.observe(modeSwitch, { 
-                        attributes: true, 
-                        attributeFilter: ["aria-checked", "class"] 
-                    });
-                    // Apply initial theme
-                    const isDarkMode = modeSwitch.getAttribute("aria-checked") === "true";
+        // Initialize theme observer
+        const modeObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === "attributes") {
+                    const switchButton = mutation.target;
+                    const isDarkMode = switchButton.getAttribute("aria-checked") === "true";
                     applyTheme(isDarkMode);
-                } else {
-                    setTimeout(observeModeSwitch, 1000);
                 }
+            });
+        });
+
+        function observeModeSwitch() {
+            const modeSwitch = document.querySelector(".ant-switch[role='switch']");
+            if (modeSwitch) {
+                modeObserver.observe(modeSwitch, { 
+                    attributes: true, 
+                    attributeFilter: ["aria-checked", "class"] 
+                });
+                // Apply initial theme
+                const isDarkMode = modeSwitch.getAttribute("aria-checked") === "true";
+                applyTheme(isDarkMode);
+            } else {
+                setTimeout(observeModeSwitch, 1000);
             }
-    
-            observeModeSwitch();
+        }
+
+        observeModeSwitch();
 
         const chatbox = document.getElementById("CHAT_CONTAINER_ID");
         const chatHeader = document.getElementById("chat-header");
@@ -633,13 +644,15 @@ function addChatbox() {
         const chatInput = document.getElementById("chat-input");
         const chatMessages = document.getElementById("chat-messages");
         const closeChatboxButton = document.getElementById("close-chatbox");
+        const deleteChatButton = document.getElementById("delete-chat");
         const sendMessageButton = document.getElementById("send-message");
         const chatMessageInput = document.getElementById("chat-message-input");
-
 
         // Add hover effects
         closeChatboxButton.addEventListener("mouseover", () => closeChatboxButton.style.opacity = "1");
         closeChatboxButton.addEventListener("mouseout", () => closeChatboxButton.style.opacity = "0.8");
+        deleteChatButton.addEventListener("mouseover", () => deleteChatButton.style.opacity = "1");
+        deleteChatButton.addEventListener("mouseout", () => deleteChatButton.style.opacity = "0.8");
         sendMessageButton.addEventListener("mouseover", () => {
             sendMessageButton.style.background = "#0dcaf0";
             sendMessageButton.style.color = "white";
@@ -668,6 +681,15 @@ function addChatbox() {
             chatbox.style.display = "none";
         });
 
+        // Add delete chat functionality
+        deleteChatButton.addEventListener("click", () => {
+            if (confirm("Are you sure you want to clear the chat history?")) {
+                chatMessages.innerHTML = ""; // Clear the chat messages from UI
+                chatHistory.length = 0; // Clear the chat history array
+                saveChat(problemKey, chatHistory); // Save empty chat history
+            }
+        });
+
         // Enter key support
         chatMessageInput.addEventListener("keypress", (e) => {
             if (e.key === "Enter") {
@@ -688,41 +710,35 @@ function addChatbox() {
                 saveChat(problemKey, chatHistory);
         
                 try {
-                    
-                        
-                        await printChatHistory();
+                    await printChatHistory();
  
-                        const currentUrl = getCurrentUrl();
-                        const problemDetails = window.getProblemContextAndDetails();
+                    const currentUrl = getCurrentUrl();
+                    const problemDetails = window.getProblemContextAndDetails();
 
-                        const userSolution = getSolutionFromLocalStorage(problemDetails, currentUrl);
+                    const userSolution = getSolutionFromLocalStorage(problemDetails, currentUrl);
+                
+                    const editorialText = editorialCode.length > 0
+                        ? `Editorial Code: ${editorialCode.map(entry => `${entry.language}: ${entry.code}`).join("\n")}`
+                        : "No editorial code available.";
+                
+                    const hintsText = Object.keys(hints).length > 0
+                        ? `Hints: ${Object.entries(hints).map(([key, value]) => `${key}: ${value}`).join("\n")}`
+                        : "No hints available.";
+
+                    console.log("problem deatils :",problemDetails);
+                    let language = extractLanguage(problemDetails);
+                    console.log(language);
+
+                    let abc = window.generatePrompt(problemDetails, hintsText, editorialText, userMessage, userSolution,language);
+                    console.log(abc)
+                    async function merge(abc, globalChatHistoryContent) {
+                        const mergedText = `${abc}\n\n${globalChatHistoryContent}`;
+                        return mergedText;
+                    }
                     
-                        const editorialText = editorialCode.length > 0
-                            ? `Editorial Code: ${editorialCode.map(entry => `${entry.language}: ${entry.code}`).join("\n")}`
-                            : "No editorial code available.";
+                    let apiRequestPayload = await merge(abc, globalChatHistoryContent);
+                    console.log("apple");
                     
-                        const hintsText = Object.keys(hints).length > 0
-                            ? `Hints: ${Object.entries(hints).map(([key, value]) => `${key}: ${value}`).join("\n")}`
-                            : "No hints available.";
-
-                        console.log("problem deatils :",problemDetails);
-                        let language = extractLanguage(problemDetails);
-                        console.log(language);
-
-                    
-                        let abc = window.generatePrompt(problemDetails, hintsText, editorialText, userMessage, userSolution,language);
-                        console.log(abc)
-                        async function merge(abc, globalChatHistoryContent) {
-                            const mergedText = `${abc}\n\n${globalChatHistoryContent}`; // Use backticks for string interpolation
-                            return mergedText; // Return the combined text
-                        }
-                        
-                        let apiRequestPayload = await merge(abc, globalChatHistoryContent); // Await the result of merge
-                        console.log("apple"); // This will be logged after merge() finishes
-                        
-
-                      
-        
                     console.log("API Request Payload:", apiRequestPayload);
         
                     // Now we pass apiRequestPayload correctly to fetchAIResponse
@@ -739,9 +755,6 @@ function addChatbox() {
                 }
             }
         });
-        
-        
-        
     });
 
     function appendMessageToChat(sender, message, chatMessages, isError = false) {
