@@ -488,34 +488,34 @@ let isFirstCall = true; // Tracks whether it's the first API call
 
 let globalChatHistoryContent = ""; // Variable to store all content
 
-function printChatHistory() {
+async function printChatHistory() {
     const problemKey = getProblemKey(); // Get the problem key from the current URL
     if (!problemKey) {
         console.error("Problem key not found.");
         return;
     }
 
-    loadChat(problemKey).then((chatHistory) => {
+    try {
+        const chatHistory = await loadChat(problemKey); // Wait for the chat history to be loaded
+
         if (chatHistory && chatHistory.length > 0) {
             globalChatHistoryContent = `Chat History for Problem Key: ${problemKey}\n`; // Reset content for new history
             chatHistory.forEach(({ sender, message }, index) => {
                 const line = `${index + 1}. ${sender}: ${message}\n`;
                 globalChatHistoryContent += line; // Append to the variable
             });
-            console.log(globalChatHistoryContent); // Display content
+             // Display content
         } else {
             globalChatHistoryContent = "No chat history found for this problem.\n";
             console.log(globalChatHistoryContent);
         }
-    }).catch((error) => {
+    } catch (error) {
         console.error("Failed to load chat history:", error);
-    });
+    }
 }
 
 
-
-// After the promise resolves, you can access:
-console.log(globalChatHistoryContent); // All chat content stored here
+// All chat content stored here
 
 
 function addChatbox() {
@@ -688,38 +688,12 @@ function addChatbox() {
                 saveChat(problemKey, chatHistory);
         
                 try {
-                    let apiRequestPayload;
-        
-                    if (isFirstCall) {
+                    
                         
-                        // First-time: Send the full prompt
+                        await printChatHistory();
+ 
                         const currentUrl = getCurrentUrl();
                         const problemDetails = window.getProblemContextAndDetails();
-                        console.log("problem deatils :",problemDetails);
-
-
-                        const userSolution = getSolutionFromLocalStorage(problemDetails, currentUrl);
-                    
-                        const editorialText = editorialCode.length > 0
-                            ? `Editorial Code: ${editorialCode.map(entry => `${entry.language}: ${entry.code}`).join("\n")}`
-                            : "No editorial code available.";
-                    
-                        const hintsText = Object.keys(hints).length > 0
-                            ? `Hints: ${Object.entries(hints).map(([key, value]) => `${key}: ${value}`).join("\n")}`
-                            : "No hints available.";
-
-                        console.log("problem deatils :",problemDetails);
-                    
-                        apiRequestPayload = window.generatePrompt(problemDetails, hintsText, editorialText, userMessage, userSolution);
-                        console.log("API Request 1:", apiRequestPayload);
-                    
-                        isFirstCall = false; // Set subsequent calls as non-first
-                    } else {
-                        // 2nd time-time: Send the full prompt
-                        const currentUrl = getCurrentUrl();
-                        const problemDetails = window.getProblemContextAndDetails();
-                        console.log("problem deatils :",problemDetails);
-
 
                         const userSolution = getSolutionFromLocalStorage(problemDetails, currentUrl);
                     
@@ -736,17 +710,16 @@ function addChatbox() {
                     
                         let abc = window.generatePrompt(problemDetails, hintsText, editorialText, userMessage, userSolution);
                         console.log(abc)
-                        function merge(abc, globalChatHistoryContent) {
-                            // Combine the chat history and the generated prompt
-                            const mergedText = `${globalChatHistoryContent}\n\n${abc}`;
+                        async function merge(abc, globalChatHistoryContent) {
+                            const mergedText = `${globalChatHistoryContent}\n\n${abc}`; // Use backticks for string interpolation
                             return mergedText; // Return the combined text
                         }
                         
-                        apiRequestPayload= merge();
+                        let apiRequestPayload = await merge(abc, globalChatHistoryContent); // Await the result of merge
+                        console.log("apple"); // This will be logged after merge() finishes
+                        
 
-                        console.log("API Request 2:", apiRequestPayload);
-                    }
-                    
+                      
         
                     console.log("API Request Payload:", apiRequestPayload);
         
