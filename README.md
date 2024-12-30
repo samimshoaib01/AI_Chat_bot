@@ -1,44 +1,50 @@
-# Chrome-Extension-Base-Template
-This is a basic Chrome Extension base template for starting new projects off of initialized with a MIT license.
+# AI Chatbot Chrome Extension for maang.in
+
+I got issue(renamed it) while pushing repo to github .It became mess so i started working with the backup files. Hoping this will be evaluated.
+## Overview
+This Chrome extension integrates an AI-powered chatbot into the maang.in website, providing users with context-aware assistance for coding problems. The extension seamlessly blends with the site’s UI and offers a range of interactive features to enhance the user experience.
 
 ## Features
-- ..
-- ..
-- ..
+- **Context-Aware Problem Details Extraction**: Extracts all relevant details of the problem for context.
+- **User Code Extraction**: Retrieves user code from local storage.
+- **Integrated 'Ask AI' Button**: Beautifully integrated button that blends seamlessly with the website's design.
+- **Interactive Chat**: Engaging and interactive chat experience.
+- **Single Prompt Submission**: The prompt is sent only once; subsequent interactions directly call the API.
+- **Hint and Editorial Extraction**: Extracts hints and editorial code that aren't part of the DOM.
+- **Chat Storage**: Stores chat history for easy access and reference.
+- **Organized Code Display**: Displays codes in an organized manner within the chatbox.
+- **Copy Code Button**: Provides a convenient copy button for AI-generated code.
+- **Dark Mode Integration**: Seamlessly integrates with the site's dark mode.
+- **Delete Chat History**: Allows users to delete chat history.
+- **UI Consistency**: User interface designed to match the site's aesthetics.
+- **Hover and Focus Effects**: Adds hover and focus effects at the chatbox input.
+- **Enter Key Support**: Supports the Enter key for submitting input in the chatbox.
+- **Separate Files for Scraping and Prompts**: Uses separate files for scraping (`scrape.js`) and prompt generation (`prompt.js`).
 
-## Author
-First Last
-- [Author Website]()
-- [Author Github]()
-- [Project Repository]()
+## Installation
+1. Clone the repository:
+    ```bash
+    https://github.com/samimshoaib01/AI_Chat_bot
+    ```
+2. Navigate to the extension directory:
+    ```bash
+    cd AI_Chat_bot
+    ```
+3. Open Chrome and go to `chrome://extensions/`.
+4. Enable "Developer mode" using the toggle switch in the top right corner.
+5. Click the "Load unpacked" button and select the extension directory.
 
-## Requirements
-### Knowledge
-- HTML
-- CSS
-- Javascript
-- Chrome API
-### Tools
-- Google Chrome Browser
-- IDE or Text Editor of Your Choice
+## Usage
+1. Navigate to the maang.in website.
+2. Click the 'Ask AI' button integrated into the site to open the chatbox.
+3. Interact with the chatbot to get context-aware assistance and solutions for coding problems.
+4. **API keys** are hard coded. If expired the this can be changed to AIzaSyBNT2rFCKyh7E-GNpJ6h0lqyjn0Q-kgcoE
 
-## Setup Instructions
-### For Developers
-1. Make a clone of this project, unzipped.
-2. Open Chrome Browser
-3. In a new or blank tab, type in "chrome://extensions/" (without the quotes of course) and click [Enter].
-4. At the top right corner of the page, **enable** "Developer Mode"
-5. Click the button on the page that says "Load Unpacked"
-6. Navigate to your unzipped project folder and select that and hit OK.
-7. You are now ready to start working on the extension! Just make sure you reload after each change you make to see the changes take place.
-
-### For End Users
-1. ...
-2. ...
-3. ...
+## Contributing
+Feel free to fork this repository and submit pull requests. Contributions are welcome!
 
 ## License
-Please refer to LICENSE file.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-
-AIzaSyCZeiZWq2Pkmg1FiEpKbfoiBzlbTnMFkHM
+## Author
+- **Shoaib Samim** - [GitHub](https://www.github.com/yourusername)
