@@ -227,8 +227,15 @@ function addAIChatbotButton() {
     );
 
     if (navContainer) {
+        // Check if an "Ask AI" button already exists
+        const existingButton = navContainer.querySelector(".ai-chatbot-button");
+        if (existingButton) {
+            existingButton.remove(); // Remove the existing button
+        }
+
+        // Create a new "Ask AI" button
         const listItem = document.createElement("li");
-        listItem.className = "d-flex flex-row rounded-3 dmsans align-items-center coding_list__V_ZOZ coding_card_mod_unactive__O_IEq";
+        listItem.className = "ai-chatbot-button d-flex flex-row rounded-3 dmsans align-items-center coding_list__V_ZOZ coding_card_mod_unactive__O_IEq";
         listItem.style.padding = "0.36rem 1rem";
 
         listItem.innerHTML = `
