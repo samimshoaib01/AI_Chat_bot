@@ -522,6 +522,8 @@ async function printChatHistory() {
 }
 
 
+
+
 // All chat content stored here
 
 
@@ -721,7 +723,7 @@ function addChatbox() {
  
                     const currentUrl = getCurrentUrl();
                     const problemDetails = window.getProblemContextAndDetails();
-
+2
                     const userSolution = getSolutionFromLocalStorage(problemDetails, currentUrl);
                 
                     const editorialText = editorialCode.length > 0
@@ -750,6 +752,7 @@ function addChatbox() {
         
                     // Now we pass apiRequestPayload correctly to fetchAIResponse
                     const aiResponse = await fetchAIResponse(apiRequestPayload);
+                    console.log("Ai response",aiResponse);
                     appendMessageToChat("AI", aiResponse, chatMessages);
         
                     // Save AI's message
@@ -770,7 +773,7 @@ function addChatbox() {
         messageDiv.style.display = "flex";
         messageDiv.style.flexDirection = "column";
         messageDiv.style.alignItems = sender === "You" ? "flex-end" : "flex-start";
-
+    
         const messageBubble = document.createElement("div");
         messageBubble.style.maxWidth = "80%";
         messageBubble.style.padding = "12px 16px";
@@ -778,46 +781,79 @@ function addChatbox() {
         messageBubble.style.backgroundColor = sender === "You" ? "#a4e6ff" : "white";
         messageBubble.style.color = "#333";
         messageBubble.style.border = `2px solid ${sender === "You" ? "#0dcaf0" : "#e0e0e0"}`;
-
+    
         const senderName = document.createElement("div");
         senderName.style.fontSize = "12px";
         senderName.style.marginBottom = "4px";
         senderName.style.color = "#666";
         senderName.textContent = sender;
-
+    
         if (message.includes("```")) {
-            const codeBlock = extractCodeBlock(message);
-            messageBubble.innerHTML = `
-                <div style="
-                    background: #1e1e1e;
-                    border-radius: 8px;
-                    padding: 12px;
-                    margin-top: 8px;
-                    position: relative;
-                    border: 2px solid #0dcaf0;
-                ">
-                    <pre style="
-                        margin: 0;
-                        font-family: 'Fira Code', monospace;
-                        font-size: 13px;
-                        color: #d4d4d4;
-                        overflow-x: auto;
-                    ">${codeBlock}</pre>
-                    <button style="
-                        position: absolute;
-                        top: 8px;
-                        right: 8px;
-                        background: #0dcaf0;
-                        color: white;
-                        border: none;
-                        padding: 4px 8px;
-                        border-radius: 4px;
-                        cursor: pointer;
-                        font-size: 12px;
-                        transition: background 0.2s;
-                    " onclick="copyToClipboard(\`${escapeHtml(codeBlock)}\`)">Copy</button>
-                </div>
-            `;
+            // Split the message into parts (text before code, code, text after code)
+            const parts = message.split(/```([\s\S]*?)```/);
+            
+            // Create a container for all content
+            const contentContainer = document.createElement("div");
+            
+            // Process each part
+            parts.forEach((part, index) => {
+                if (index % 2 === 0) {
+                    // Regular text
+                    if (part.trim()) {
+                        const textDiv = document.createElement("div");
+                        textDiv.style.marginBottom = "8px";
+                        textDiv.textContent = part.trim();
+                        contentContainer.appendChild(textDiv);
+                    }
+                } else {
+                    // Code block
+                    const codeContainer = document.createElement("div");
+                    codeContainer.style.position = "relative";
+                    codeContainer.style.marginBottom = "8px";
+                    
+                    const codeBlock = document.createElement("pre");
+                    codeBlock.style.margin = "0";
+                    codeBlock.style.background = "#1e1e1e";
+                    codeBlock.style.borderRadius = "8px";
+                    codeBlock.style.padding = "12px";
+                    codeBlock.style.border = "2px solid #0dcaf0";
+                    codeBlock.style.fontFamily = "'Fira Code', monospace";
+                    codeBlock.style.fontSize = "13px";
+                    codeBlock.style.color = "#d4d4d4";
+                    codeBlock.style.overflowX = "auto";
+                    codeBlock.textContent = part.trim();
+    
+                    const copyButton = document.createElement("button");
+                    copyButton.textContent = "Copy";
+                    copyButton.style.position = "absolute";
+                    copyButton.style.top = "8px";
+                    copyButton.style.right = "8px";
+                    copyButton.style.background = "#0dcaf0";
+                    copyButton.style.color = "white";
+                    copyButton.style.border = "none";
+                    copyButton.style.padding = "4px 8px";
+                    copyButton.style.borderRadius = "4px";
+                    copyButton.style.cursor = "pointer";
+                    copyButton.style.fontSize = "12px";
+                    copyButton.style.transition = "background 0.2s";
+    
+                    copyButton.addEventListener("click", () => {
+                        navigator.clipboard.writeText(part.trim())
+                            .then(() => {
+                                alert("Code copied to clipboard!");
+                            })
+                            .catch(err => {
+                                console.error("Failed to copy text:", err);
+                            });
+                    });
+    
+                    codeContainer.appendChild(codeBlock);
+                    codeContainer.appendChild(copyButton);
+                    contentContainer.appendChild(codeContainer);
+                }
+            });
+    
+            messageBubble.appendChild(contentContainer);
         } else {
             messageBubble.textContent = message;
             if (isError) {
@@ -826,17 +862,45 @@ function addChatbox() {
                 messageBubble.style.border = "2px solid #c00";
             }
         }
-
+    
         messageDiv.appendChild(senderName);
         messageDiv.appendChild(messageBubble);
         chatMessages.appendChild(messageDiv);
     }
-
-    function extractCodeBlock(message) {
-        const codeMatch = message.match(/```([\s\S]*?)```/);
-        return codeMatch ? codeMatch[1] : message;
+    
+    
+    function detectLanguage(code) {
+        // Simple language detection based on common patterns
+        if (code.includes('#include')) return 'C++';
+        if (code.includes('public class')) return 'Java';
+        if (code.includes('def ')) return 'Python';
+        if (code.includes('function')) return 'JavaScript';
+        return 'Code';
     }
-
+    
+    function formatCode(code, language) {
+        // Remove extra whitespace and empty lines at start/end
+        code = code.trim();
+        
+        // Add proper indentation
+        const lines = code.split('\n');
+        const baseIndent = lines[0].match(/^\s*/)[0].length;
+        
+        return lines
+            .map(line => {
+                // Remove common indentation
+                const trimmed = line.slice(baseIndent);
+                // Escape HTML characters
+                return escapeHtml(trimmed);
+            })
+            .join('\n');
+    }
+    
+    function extractCodeBlock(message) {
+        const codeMatch = message.match(/```(?:\w+\n)?([\s\S]*?)```/);
+        return codeMatch ? codeMatch[1].trim() : message;
+    }
+    
     function escapeHtml(unsafe) {
         return unsafe
             .replace(/&/g, "&amp;")
@@ -845,7 +909,7 @@ function addChatbox() {
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
     }
-
+    
     window.copyToClipboard = (text) => {
         navigator.clipboard.writeText(text).then(() => {
             alert("Code copied to clipboard!");
@@ -853,4 +917,5 @@ function addChatbox() {
             console.error("Failed to copy text:", err);
         });
     };
+    
 }
