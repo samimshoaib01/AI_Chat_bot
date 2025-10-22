@@ -1,4 +1,5 @@
 # AI Chatbot Chrome Extension for maang.in
+<img width="1921" height="1074" alt="image" src="https://github.com/user-attachments/assets/af311948-61da-4bcd-9240-e8854ac839f7" />
 
 I got issue(renamed it) while pushing repo to github .It became mess so i started working with the backup files. Hoping this will be evaluated.
 **Demo_video ::** https://youtu.be/bIunA-yyYhY
