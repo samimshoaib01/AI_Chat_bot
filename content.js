@@ -1,5 +1,4 @@
-
-	// content.js
+// content.js
 // Author:
 // Author URI: https://
 // Author Github URI: https://www.github.com/
@@ -107,7 +106,7 @@ function isPageChange() {
 function handlePageChange() {
     if (onTargetPage()) {
         cleanUpPage();
-        addInjectScripts();
+        // REMOVED: addInjectScripts(); // Removed to fix script loading and React stability issues
         addAIChatbotButton();
     }
 }
@@ -129,23 +128,7 @@ function cleanUpPage() {
     }
 }
 
-function addInjectScripts() {
-    const script = document.createElement("script");
-    script.src = chrome.runtime.getURL("inject.js");
-    document.documentElement.insertAdjacentElement("afterbegin", script);
-    script.remove();
-
-    const script1 = document.createElement("script");
-    script1.src = chrome.runtime.getURL("prompt.js");
-    document.documentElement.appendChild(script1);
-
-    const script2 = document.createElement("script");
-    script2.src = chrome.runtime.getURL("scraper.js");
-    document.documentElement.appendChild(script2);
-
-    script1.remove();
-    script2.remove();
-}
+// REMOVED THE FAULTY addInjectScripts FUNCTION
 
 function getProblemKey() {
     const pathname = window.location.pathname;
@@ -222,7 +205,9 @@ window.addEventListener("message", (event) => {
     }
 });
 
-function addAIChatbotButton() {
+async function addAIChatbotButton() {
+    const apiKey = await getApiKey();
+
     // Find the "Doubt Forum" list item by matching its innerText
     const allListItems = document.querySelectorAll("li.d-flex.flex-row");
 
@@ -247,27 +232,40 @@ function addAIChatbotButton() {
         aiButton.style.padding = "0.36rem 1rem";
         aiButton.style.whiteSpace = "nowrap";
 
+        const buttonText = apiKey 
+            ? '<span class="coding_ask_doubt_gradient_text__FX_hZ">Ask AI</span>'
+            : '<span style="color: red; font-weight: bold;">Set API Key</span>';
+            
         aiButton.innerHTML = `
             <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" class="me-1" height="18" width="18" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548-.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
             </svg>
-            <span class="coding_ask_doubt_gradient_text__FX_hZ">Ask AI</span>
+            ${buttonText}
         `;
 
         aiButton.addEventListener("click", () => {
+            if (!apiKey) {
+                alert("Please click the extension icon and set your Gemini API Key first.");
+                return;
+            }
+            
             const chatbox = document.getElementById("CHAT_CONTAINER_ID");
             if (chatbox) {
                 chatbox.style.display = chatbox.style.display === "block" ? "none" : "block";
             } else {
-                console.log("Chatbox not found.");
+                // Should not happen if addChatbox is called, but a fallback
+                console.log("Chatbox not found, initializing...");
+                addChatbox();
             }
         });
 
         // Insert AI button after "Doubt Forum"
         doubtForumItem.parentNode.insertBefore(aiButton, doubtForumItem.nextSibling);
 
-        // Ensure chatbox logic is set up
-        addChatbox();
+        // Ensure chatbox logic is set up only if a key is present
+        if (apiKey) {
+            addChatbox();
+        }
     } else {
         console.log("Doubt Forum button not found.");
     }
@@ -310,61 +308,26 @@ async function summarizeChatWithGemini(chatMessages) {
 }
 
 
-
-// async function fetchAIResponse(apiRequestPayload) {
-//     const apiKey = "AIzaSyCZeiZWq2Pkmg1FiEpKbfoiBzlbTnMFkHM"; // Replace with your actual API key
-//     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    
-//     // Construct the request content in the correct format
-//     const messages = Array.isArray(apiRequestPayload)
-//         ? apiRequestPayload.map(({ sender, message }) => ({
-//             role: sender === "You" ? "user" : "model", // "user" or "model" role
-//             parts: [{ text: message }] // Wrap message in the 'parts' array
-//         }))
-//         : [{
-//             role: "user", // Default to "user" if it's a single string
-//             parts: [{ text: apiRequestPayload }]
-//         }];
-    
-//     // Construct the payload with 'contents' array
-//     const payload = {
-//         contents: messages
-//     };
-
-//     try {
-//         const response = await fetch(apiUrl, {
-//             method: "POST",
-//             headers: {
-//                 "Content-Type": "application/json",
-//             },
-//             body: JSON.stringify(payload),
-//         });
-
-//         const responseData = await response.json();
-//         console.log("API Response:", responseData);
-
-//         // Extract the response text from the response structure
-//         if (
-//             responseData &&
-//             responseData.candidates &&
-//             Array.isArray(responseData.candidates) &&
-//             responseData.candidates.length > 0 &&
-//             responseData.candidates[0].content &&
-//             responseData.candidates[0].content.parts &&
-//             Array.isArray(responseData.candidates[0].content.parts)
-//         ) {
-//             return responseData.candidates[0].content.parts[0].text; // Extract the text from the first part
-//         } else {
-//             throw new Error("Unexpected API response structure");
-//         }
-//     } catch (error) {
-//         console.error("Error calling AI API:", error);
-//         throw error;
-//     }
-// }
+// Function to retrieve API key from storage. Returns the key or undefined/null.
+function getApiKey() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get('geminiApiKey', (data) => {
+            // Resolve only with the stored key. No default key is provided.
+            resolve(data.geminiApiKey);
+        });
+    });
+}
 
 async function fetchAIResponse(apiRequestPayload) {
-    const apiKey = "AIzaSyCvT3QKetP5mtqmBhuLtnukL3gWLEEBQRU"; // Replace with your actual API key
+    // 1. Get the API key from storage
+    const apiKey = await getApiKey(); 
+    
+    // Check if a key is available and has a minimum length
+    if (!apiKey || apiKey.length < 30) { 
+         throw new Error("API Key is missing or invalid. Please set your key in the extension popup and reload the page.");
+    }
+    
+    // 2. Use the retrieved key in the API URL
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     // Construct the request content in the correct format
@@ -409,15 +372,17 @@ async function fetchAIResponse(apiRequestPayload) {
         ) {
             return responseData.candidates[0].content.parts[0].text; // Extract the text from the first part
         } else {
-            throw new Error("Unexpected API response structure");
+            // Check for API error messages
+            if (responseData.error && responseData.error.message) {
+                 throw new Error(`Gemini API Error: ${responseData.error.message}`);
+            }
+            throw new Error("Unexpected or empty API response structure.");
         }
     } catch (error) {
         console.error("Error calling AI API:", error);
         throw error;
     }
 }
-
-
 
 
 function applyTheme(isDarkMode) {
@@ -689,7 +654,6 @@ function addChatbox() {
     backdrop-filter: blur(10px);
     cursor: default;
 ">
-    <!-- Resize handles -->
     <div class="resize-handle resize-handle-n" style="
         position: absolute;
         top: 0;
@@ -1006,6 +970,8 @@ const sendMessage = async () => {
             console.log("--- FIRST CALL: Sending full context prompt ---");
             
             // 1. Gather all required context data
+            // Since prompt.js and scraper.js are content scripts, their functions are available
+            // Note: window.getProblemContextAndDetails and window.generatePrompt are available
             const problemDetails = window.getProblemContextAndDetails();
             const currentUrl = getCurrentUrl();
             const userSolution = getSolutionFromLocalStorage(problemDetails, currentUrl);
@@ -1052,7 +1018,7 @@ const sendMessage = async () => {
         saveChat(problemKey, chatHistory);
 
     } catch (error) {
-        appendMessageToChat("AI", "⚠️ **Error:** Failed to get response. Please ensure your API key is valid and check the browser console for network details.", chatMessages, true);
+        appendMessageToChat("AI", `⚠️ **Error:** ${error.message}. Please check your API key and try again.`, chatMessages, true);
         console.error("AI Response Error:", error);
     } finally {
         // Reset UI state
@@ -1630,7 +1596,7 @@ function parseMessageSections(message) {
         // Handle lists
         if (trimmedLine.match(/^[\*\-\+]\s/) || trimmedLine.match(/^\d+\.\s/)) {
             if (currentSection.type !== 'list') {
-                if (currentSection.content.trim()) {
+                if ((currentSection.content && currentSection.content.trim())) {
                     sections.push(currentSection);
                 }
                 currentSection = { 
@@ -1647,7 +1613,7 @@ function parseMessageSections(message) {
         // Handle quotes
         if (trimmedLine.startsWith('>')) {
             if (currentSection.type !== 'quote') {
-                if (currentSection.content.trim()) {
+                if ((currentSection.content && currentSection.content.trim())) {
                     sections.push(currentSection);
                 }
                 currentSection = { type: 'quote', content: '' };
@@ -1658,7 +1624,11 @@ function parseMessageSections(message) {
         
         // Handle regular text
         if (currentSection.type !== 'text') {
-            if (currentSection.content.trim() || (currentSection.items && currentSection.items.length > 0)) {
+            // FIX: Ensure content exists before calling .trim() (to fix TypeError: Cannot read properties of undefined (reading 'trim'))
+            const hasContent = (currentSection.content && currentSection.content.trim()) || 
+                               (currentSection.items && currentSection.items.length > 0);
+            
+            if (hasContent) {
                 sections.push(currentSection);
             }
             currentSection = { type: 'text', content: '' };
