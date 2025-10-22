@@ -293,7 +293,7 @@ async function summarizeChatWithGemini(chatMessages) {
         ]
     };
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCZeiZWq2Pkmg1FiEpKbfoiBzlbTnMFkHM`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyCvT3QKetP5mtqmBhuLtnukL3gWLEEBQRU`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -364,8 +364,8 @@ async function summarizeChatWithGemini(chatMessages) {
 // }
 
 async function fetchAIResponse(apiRequestPayload) {
-    const apiKey = "AIzaSyCZeiZWq2Pkmg1FiEpKbfoiBzlbTnMFkHM"; // Replace with your actual API key
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiKey = "AIzaSyCvT3QKetP5mtqmBhuLtnukL3gWLEEBQRU"; // Replace with your actual API key
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     // Construct the request content in the correct format
     const messages = Array.isArray(apiRequestPayload)
@@ -977,9 +977,96 @@ function addChatbox() {
         });
 
         // Your existing sendMessage functionality...
-        const sendMessage = async () => {
-            // ... rest of your existing sendMessage code
-        };
+        // This function needs to be outside or above addChatbox/sendMessage, 
+// as it relies on the global scope of content.js
+
+// The corrected sendMessage function
+const sendMessage = async () => {
+    const message = chatMessageInput.value.trim();
+    if (!message) return;
+
+    // Clear input
+    chatMessageInput.value = "";
+
+    // Append user message (temporarily, before sending to API)
+    appendMessageToChat("You", message, chatMessages);
+
+    // Show typing indicator
+    typingIndicator.style.display = "block";
+    sendMessageButton.disabled = true; // Disable button to prevent spam
+    
+    // UI Loading state
+    sendIcon.style.display = "none";
+    sendLoading.style.display = "block";
+
+    try {
+        let apiRequestPayload;
+
+        if (isFirstCall) {
+            console.log("--- FIRST CALL: Sending full context prompt ---");
+            
+            // 1. Gather all required context data
+            const problemDetails = window.getProblemContextAndDetails();
+            const currentUrl = getCurrentUrl();
+            const userSolution = getSolutionFromLocalStorage(problemDetails, currentUrl);
+            
+            // Format hints and editorials (extracted from window listeners)
+            const hintsText = Object.entries(hints).map(([key, value]) => `${key}: ${value}`).join('\n');
+            const editorialText = editorialCode.map(e => `Language: ${e.language}\nCode:\n${e.code}`).join('\n\n');
+            
+            const previousChatText = chatHistory
+                .map(msg => `${msg.sender}: ${msg.message}`)
+                .join("\n");
+
+            // 2. Generate the single, massive prompt string
+            apiRequestPayload = window.generatePrompt(
+                problemDetails,
+                hintsText,
+                editorialText,
+                message, // Pass the current user message as the final question
+                userSolution,
+                previousChatText
+            );
+            
+            // Save the user's message to history *after* context is used
+            chatHistory.push({ sender: "You", message });
+            isFirstCall = false; // Next call will be conversational
+
+        } else {
+            console.log("--- SUBSEQUENT CALL: Sending chat history ---");
+
+            // Save the user's message to history *before* fetching AI response
+            chatHistory.push({ sender: "You", message }); 
+            
+            // For subsequent calls, send the structured chat history array
+            // NOTE: fetchAIResponse handles mapping {sender, message} to {role, parts}
+            apiRequestPayload = chatHistory;
+        }
+
+        // Send to Gemini API
+        const aiResponse = await fetchAIResponse(apiRequestPayload);
+
+        // Append AI response
+        appendMessageToChat("AI", aiResponse, chatMessages);
+        chatHistory.push({ sender: "AI", message: aiResponse });
+        saveChat(problemKey, chatHistory);
+
+    } catch (error) {
+        appendMessageToChat("AI", "⚠️ **Error:** Failed to get response. Please ensure your API key is valid and check the browser console for network details.", chatMessages, true);
+        console.error("AI Response Error:", error);
+    } finally {
+        // Reset UI state
+        typingIndicator.style.display = "none";
+        sendIcon.style.display = "block";
+        sendLoading.style.display = "none";
+        sendMessageButton.disabled = false;
+        
+        // Save history (important for error cases too)
+        saveChat(problemKey, chatHistory); 
+    }
+};
+
+// ... event listeners for sendMessageButton and chatMessageInput below this ...
 
         sendMessageButton.addEventListener("click", sendMessage);
         chatMessageInput.addEventListener("keypress", (e) => {
